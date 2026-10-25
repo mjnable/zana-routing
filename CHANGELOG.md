@@ -13,6 +13,10 @@ not change this package is not listed.
 - Route defaults (`Route::defaults()`), exported with the route cache.
 - Result converters: services tagged `routing.result_converters`.
 
+## 2.0.0 — 2026-10-26
+
+The final 2.0 release. No changes since 2.0.0-rc.1.
+
 ## 2.0.0-alpha.3 — 2026-10-24
 
 First release of the 2.0 line. Routes, groups, attribute routes, URL generation and controller dispatch, on top of `mj-zana/http`. Requires PHP 8.5 or later.
