@@ -26,6 +26,9 @@ final class Route
     /** @var array<string, string> parameter => regex */
     private array $patterns = [];
 
+    /** @var array<string, scalar> */
+    private array $defaults = [];
+
     /** @var list<string|array{string}> Literal text, or [parameter name] */
     private readonly array $parts;
 
@@ -102,6 +105,27 @@ final class Route
     public function patterns(): array
     {
         return $this->patterns;
+    }
+
+    /**
+     * Values that become request attributes when the route matches, such as
+     * "_locale" on localised routes. Path parameters of the same name win.
+     *
+     * @param array<string, scalar> $defaults
+     */
+    public function defaults(array $defaults): self
+    {
+        $this->defaults = [...$this->defaults, ...$defaults];
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, scalar>
+     */
+    public function getDefaults(): array
+    {
+        return $this->defaults;
     }
 
     public function allows(string $method): bool

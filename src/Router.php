@@ -23,6 +23,9 @@ final class Router
     /** @var array<string, Route> */
     private array $named = [];
 
+    /** @var array<string, array<string, Route>> localised name => locale => route */
+    private array $localized = [];
+
     /** @var list<array{string, list<MiddlewareInterface|class-string<MiddlewareInterface>>}> prefix, middleware */
     private array $groups = [];
 
@@ -105,6 +108,43 @@ final class Router
         $this->routes[] = $route;
 
         return $route;
+    }
+
+    /**
+     * One route per locale, each under its locale prefix and carrying the
+     * "_locale" default:
+     *
+     *     $router->localized(['en' => '/about', 'fr' => '/a-propos'], [PageController::class, 'about'])->name('about');
+     *     // GET /en/about named "about.en", GET /fr/a-propos named "about.fr"
+     *
+     * @param array<string, string> $paths locale => path ("/" for the locale's home)
+     * @param Closure|class-string|array{class-string, string} $handler
+     * @param list<string> $methods
+     * @param bool $prefix Prefix each path with "/<locale>"; false when the paths carry it already, or for per-locale domains
+     */
+    public function localized(array $paths, Closure|string|array $handler, array $methods = ['GET'], bool $prefix = true): LocalizedRoute
+    {
+        if ($paths === []) {
+            throw new RoutingException('A localised route needs at least one locale.');
+        }
+
+        $variants = [];
+        foreach ($paths as $locale => $path) {
+            $path = $prefix ? '/' . $locale . ($path === '/' ? '' : '/' . ltrim($path, '/')) : $path;
+            $variants[$locale] = $this->map($methods, $path, $handler)->defaults(['_locale' => $locale]);
+        }
+
+        return new LocalizedRoute($variants);
+    }
+
+    /**
+     * The variants of a localised route name, or null when the name is not localised.
+     *
+     * @return array<string, Route>|null locale => route
+     */
+    public function localizedVariants(string $name): ?array
+    {
+        return $this->localized[$name] ?? null;
     }
 
     /**
@@ -211,7 +251,7 @@ final class Router
     /**
      * Routes as plain data for caching. Closure handlers cannot be exported.
      *
-     * @return list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>}>
+     * @return list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>, defaults: array<string, scalar>}>
      */
     public function export(): array
     {
@@ -235,12 +275,13 @@ final class Router
                 'name' => $route->getName(),
                 'middleware' => $middleware,
                 'patterns' => $route->patterns(),
+                'defaults' => $route->getDefaults(),
             ];
         }, $this->routes);
     }
 
     /**
-     * @param list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>}> $routes
+     * @param list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>, defaults?: array<string, scalar>}> $routes
      */
     public static function fromExport(array $routes): self
     {
@@ -252,6 +293,7 @@ final class Router
             foreach ($data['patterns'] as $parameter => $regex) {
                 $route->where($parameter, $regex);
             }
+            $route->defaults($data['defaults'] ?? []);
             /** @var list<class-string<MiddlewareInterface>> $middleware */
             $middleware = $data['middleware'];
             $route->middleware(...$middleware);
@@ -277,6 +319,11 @@ final class Router
         }
 
         $this->named[$name] = $route;
+
+        $locale = $route->getDefaults()['_locale'] ?? null;
+        if (is_string($locale) && str_ends_with($name, ".{$locale}")) {
+            $this->localized[substr($name, 0, -strlen($locale) - 1)][$locale] = $route;
+        }
     }
 
     /**

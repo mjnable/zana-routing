@@ -17,6 +17,10 @@ use Zana\Http\ResponseFactory;
  * The terminal HTTP handler: matches the route, runs its middleware, and
  * calls the handler through the request scope with route parameters and the
  * request injected. Registered scoped as "http.handler".
+ *
+ * Route defaults and parameters become request attributes, and the URL
+ * defaults while the route runs. Handler results go through the converters
+ * tagged "routing.result_converters" before the built-in conversions.
  */
 final readonly class RouteDispatcher implements RequestHandlerInterface
 {
@@ -24,6 +28,7 @@ final readonly class RouteDispatcher implements RequestHandlerInterface
         private Router $router,
         private ServiceResolverInterface $resolver,
         private ResponseFactory $responses,
+        private ?UrlDefaults $urlDefaults = null,
     ) {
     }
 
@@ -31,7 +36,8 @@ final readonly class RouteDispatcher implements RequestHandlerInterface
     {
         $match = $this->router->match($request->getMethod(), $request->getUri()->getPath());
 
-        foreach ($match->parameters as $name => $value) {
+        $attributes = [...$match->route->getDefaults(), ...$match->parameters];
+        foreach ($attributes as $name => $value) {
             $request = $request->withAttribute($name, $value);
         }
         $request = $request
@@ -49,7 +55,11 @@ final readonly class RouteDispatcher implements RequestHandlerInterface
             }
         };
 
-        return (new MiddlewarePipeline($match->route->getMiddleware(), $invoke, $this->resolver))->handle($request);
+        $pipeline = new MiddlewarePipeline($match->route->getMiddleware(), $invoke, $this->resolver);
+
+        return $this->urlDefaults === null
+            ? $pipeline->handle($request)
+            : $this->urlDefaults->run($attributes, static fn (): ResponseInterface => $pipeline->handle($request));
     }
 
     /**
@@ -60,7 +70,19 @@ final readonly class RouteDispatcher implements RequestHandlerInterface
         $handler = $match->route->handler;
         $callable = is_string($handler) ? [$handler, '__invoke'] : $handler;
 
-        $result = $this->resolver->call($callable, $this->overrides($callable, $match->parameters, $request));
+        $parameters = [...array_map('strval', $match->route->getDefaults()), ...$match->parameters];
+        $result = $this->resolver->call($callable, $this->overrides($callable, $parameters, $request));
+
+        if (!$result instanceof ResponseInterface) {
+            foreach ($this->resolver->tagged(ResultConverterInterface::TAG) as $converter) {
+                if (!$converter instanceof ResultConverterInterface) {
+                    throw new \UnexpectedValueException('Services tagged "' . ResultConverterInterface::TAG . '" must implement ' . ResultConverterInterface::class . '; ' . $converter::class . ' does not.');
+                }
+                if ($converter->supports($result)) {
+                    return $converter->convert($result, $request);
+                }
+            }
+        }
 
         return $this->toResponse($result);
     }

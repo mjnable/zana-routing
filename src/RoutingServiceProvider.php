@@ -20,6 +20,7 @@ final class RoutingServiceProvider extends ServiceProvider
     {
         $services
             ->singleton(Router::class)
+            ->singleton(UrlDefaults::class)
             ->singleton(UrlGenerator::class)
             ->scoped(RouteDispatcher::class);
 

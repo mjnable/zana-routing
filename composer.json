@@ -24,10 +24,10 @@
         "files": ["tests/Fixtures.php"]
     },
     "repositories": [
-        { "type": "path", "url": "../zana-container", "options": { "symlink": true, "versions": { "mj-zana/container": "2.0.0" } } },
-        { "type": "path", "url": "../zana-configuration", "options": { "symlink": true, "versions": { "mj-zana/configuration": "2.0.0" } } },
-        { "type": "path", "url": "../zana-core", "options": { "symlink": true, "versions": { "mj-zana/core": "2.0.0" } } },
-        { "type": "path", "url": "../zana-http", "options": { "symlink": true, "versions": { "mj-zana/http": "2.0.0" } } }
+        { "type": "path", "url": "../zana-container", "options": { "symlink": true, "versions": { "mj-zana/container": "2.1.0" } } },
+        { "type": "path", "url": "../zana-configuration", "options": { "symlink": true, "versions": { "mj-zana/configuration": "2.1.0" } } },
+        { "type": "path", "url": "../zana-core", "options": { "symlink": true, "versions": { "mj-zana/core": "2.1.0" } } },
+        { "type": "path", "url": "../zana-http", "options": { "symlink": true, "versions": { "mj-zana/http": "2.1.0" } } }
     ],
     "scripts": {
         "test": "phpunit",
