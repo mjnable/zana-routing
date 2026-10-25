@@ -58,6 +58,20 @@ $urls->generate('patients.show', ['id' => 7], ['tab' => 'history']);   // /patie
 - **Caching:** `Router::export()` / `Router::fromExport()` cache the route table
   (closures can't be exported).
 
+## New in 2.1
+
+```php
+$router->localized(['en' => '/about', 'fr' => '/a-propos'], [PageController::class, 'about'])->name('about');
+
+$urls->generate('about');                       // the current request's locale
+$urls->generate('about', ['_locale' => 'fr']);  // /fr/a-propos
+$urls->alternates('about');                     // ['en' => '/en/about', 'fr' => '/fr/a-propos']
+```
+
+- **Route defaults** become request attributes, such as `_locale`.
+- **Result converters**, services tagged `routing.result_converters`, turn
+  custom results into responses.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
