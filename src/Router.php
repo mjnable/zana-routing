@@ -251,7 +251,7 @@ final class Router
     /**
      * Routes as plain data for caching. Closure handlers cannot be exported.
      *
-     * @return list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>, defaults: array<string, scalar>}>
+     * @return list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>, defaults: array<string, scalar>, meta: array<string, scalar|array<array-key, scalar>>}>
      */
     public function export(): array
     {
@@ -276,12 +276,13 @@ final class Router
                 'middleware' => $middleware,
                 'patterns' => $route->patterns(),
                 'defaults' => $route->getDefaults(),
+                'meta' => $route->getMeta(),
             ];
         }, $this->routes);
     }
 
     /**
-     * @param list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>, defaults?: array<string, scalar>}> $routes
+     * @param list<array{methods: list<string>, path: string, handler: string|array{string, string}, name: ?string, middleware: list<string>, patterns: array<string, string>, defaults?: array<string, scalar>, meta?: array<string, scalar|array<array-key, scalar>>}> $routes
      */
     public static function fromExport(array $routes): self
     {
@@ -294,6 +295,7 @@ final class Router
                 $route->where($parameter, $regex);
             }
             $route->defaults($data['defaults'] ?? []);
+            $route->meta($data['meta'] ?? []);
             /** @var list<class-string<MiddlewareInterface>> $middleware */
             $middleware = $data['middleware'];
             $route->middleware(...$middleware);
@@ -334,6 +336,7 @@ final class Router
     {
         $route = $this->map($attribute->methods, rtrim($prefix, '/') . '/' . ltrim($attribute->path, '/'), $handler);
         $route->middleware(...$middleware, ...$attribute->middleware);
+        $route->meta($attribute->meta);
         if ($attribute->name !== null) {
             $route->name($attribute->name);
         }

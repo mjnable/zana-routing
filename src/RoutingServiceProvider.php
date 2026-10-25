@@ -8,6 +8,8 @@ use Zana\Container\Contracts\ServiceCollectionInterface;
 use Zana\Container\Contracts\ServiceResolverInterface;
 use Zana\Container\ServiceLifetime;
 use Zana\Core\ServiceProvider;
+use Zana\Configuration\ConfigurationInterface;
+use Zana\Http\BasePath;
 use Zana\Http\HttpKernel;
 
 /**
@@ -21,7 +23,13 @@ final class RoutingServiceProvider extends ServiceProvider
         $services
             ->singleton(Router::class)
             ->singleton(UrlDefaults::class)
-            ->singleton(UrlGenerator::class)
+            ->singleton(UrlGenerator::class, static function (ServiceResolverInterface $r): UrlGenerator {
+                $router = $r->get(Router::class);
+                $defaults = $r->get(UrlDefaults::class);
+                assert($router instanceof Router && $defaults instanceof UrlDefaults);
+
+                return new UrlGenerator($router, $defaults, BasePath::fromConfig($r->get(ConfigurationInterface::class)));
+            })
             ->scoped(RouteDispatcher::class);
 
         $handler = static fn (ServiceResolverInterface $scope): RouteDispatcher => $scope->get(RouteDispatcher::class);

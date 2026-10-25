@@ -29,6 +29,9 @@ final class Route
     /** @var array<string, scalar> */
     private array $defaults = [];
 
+    /** @var array<string, scalar|array<array-key, scalar>> */
+    private array $meta = [];
+
     /** @var list<string|array{string}> Literal text, or [parameter name] */
     private readonly array $parts;
 
@@ -126,6 +129,28 @@ final class Route
     public function getDefaults(): array
     {
         return $this->defaults;
+    }
+
+    /**
+     * Information about the route for the application, such as whether it
+     * belongs in the sitemap: ->meta(['sitemap' => true, 'priority' => 0.8]).
+     * Routing does not read it.
+     *
+     * @param array<string, scalar|array<array-key, scalar>> $meta
+     */
+    public function meta(array $meta): self
+    {
+        $this->meta = [...$this->meta, ...$meta];
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, scalar|array<array-key, scalar>>
+     */
+    public function getMeta(): array
+    {
+        return $this->meta;
     }
 
     public function allows(string $method): bool

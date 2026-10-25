@@ -19,12 +19,14 @@ final class Route
     /**
      * @param list<string> $methods
      * @param list<class-string<\Psr\Http\Server\MiddlewareInterface>> $middleware
+     * @param array<string, scalar|array<array-key, scalar>> $meta Route::meta()
      */
     public function __construct(
         public readonly string $path = '',
         public readonly array $methods = ['GET'],
         public readonly ?string $name = null,
         public readonly array $middleware = [],
+        public readonly array $meta = [],
     ) {
     }
 }

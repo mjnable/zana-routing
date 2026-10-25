@@ -12,12 +12,16 @@ namespace Zana\Routing;
  * repeating them. For a localised name ("about", registered with
  * Router::localized()), the variant is picked from the "_locale" parameter,
  * then the current request's locale, then the first locale registered.
+ *
+ * Paths start with the application's base path (http.base_path) when it
+ * runs from a sub-folder.
  */
 final readonly class UrlGenerator
 {
     public function __construct(
         private Router $router,
         private ?UrlDefaults $defaults = null,
+        private string $basePath = '',
     ) {
     }
 
@@ -60,7 +64,7 @@ final readonly class UrlGenerator
             $values[$parameter] = $value;
         }
 
-        $path = $route->buildPath($values);
+        $path = $this->basePath . $route->buildPath($values);
         $extra = [...array_map(static fn (mixed $v): mixed => $v instanceof \Stringable ? (string) $v : $v, $parameters), ...$query];
 
         return $extra === [] ? $path : $path . '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986);

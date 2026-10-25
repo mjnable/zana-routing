@@ -51,6 +51,18 @@ final readonly class LocalizedRoute
     }
 
     /**
+     * @param array<string, scalar|array<array-key, scalar>> $meta
+     */
+    public function meta(array $meta): self
+    {
+        foreach ($this->variants as $route) {
+            $route->meta($meta);
+        }
+
+        return $this;
+    }
+
+    /**
      * @param array<string, scalar> $defaults
      */
     public function defaults(array $defaults): self
