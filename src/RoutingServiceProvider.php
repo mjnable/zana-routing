@@ -29,7 +29,7 @@ final class RoutingServiceProvider extends ServiceProvider
                 assert($router instanceof Router && $defaults instanceof UrlDefaults);
 
                 return new UrlGenerator($router, $defaults, BasePath::fromConfig($r->get(ConfigurationInterface::class)));
-            })
+            })->uses(Router::class, UrlDefaults::class, ConfigurationInterface::class)
             ->scoped(RouteDispatcher::class)
             ->scoped(RedirectHandler::class);
 
