@@ -3,6 +3,17 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.3.0 — unreleased
+
+### Added
+
+- `Router::redirect()` and `RedirectHandler`: redirect routes to a route name, a path or an http(s) URL,
+  with a status and extra headers, exportable to the route cache (FE-14).
+
+### Changed
+
+- Tests and tooling are no longer in Composer archives (`export-ignore`).
+
 ## 2.2.0 — 2026-10-26
 
 ### Added

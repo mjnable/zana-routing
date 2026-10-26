@@ -30,7 +30,8 @@ final class RoutingServiceProvider extends ServiceProvider
 
                 return new UrlGenerator($router, $defaults, BasePath::fromConfig($r->get(ConfigurationInterface::class)));
             })
-            ->scoped(RouteDispatcher::class);
+            ->scoped(RouteDispatcher::class)
+            ->scoped(RedirectHandler::class);
 
         $handler = static fn (ServiceResolverInterface $scope): RouteDispatcher => $scope->get(RouteDispatcher::class);
 

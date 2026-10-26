@@ -72,6 +72,20 @@ $urls->alternates('about');                     // ['en' => '/en/about', 'fr' =>
 - **Result converters**, services tagged `routing.result_converters`, turn
   custom results into responses.
 
+## New in 2.2 and 2.3
+
+- **Route metadata (2.2):** `->meta([...])` or `#[Route(meta: [...])]`, kept in the route cache.
+- **Redirect routes (2.3):** old URLs and shortcuts, still exportable to the route cache:
+
+  ```php
+  $router->redirect('/about-us', 'about', parameters: ['_locale' => 'fr']);   // 301 to a route
+  $router->redirect('/news/{slug}', 'blog.show');                            // the slug carries over
+  $router->redirect('/webmail', 'https://mail.example.com', 302, ['Cache-Control' => 'no-store']);
+  ```
+
+  The target is a route name, a path or an http(s) URL fixed in code; protocol-relative URLs, other
+  schemes and headers with line breaks are refused.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

@@ -111,6 +111,52 @@ final class Router
     }
 
     /**
+     * A GET route that redirects (FE-14), served by RedirectHandler, so it
+     * stays exportable to the route cache:
+     *
+     *     $router->redirect('/about', 'about', parameters: ['_locale' => 'fr']);   // to a route name
+     *     $router->redirect('/news/{slug}', 'blog.show');                          // the slug carries over
+     *     $router->redirect('/webmail', 'https://mail.example.com', 302, [
+     *         'Cache-Control' => 'no-store', 'X-Robots-Tag' => 'noindex', 'Referrer-Policy' => 'no-referrer',
+     *     ]);
+     *
+     * @param string $to A route name, a path starting with "/", or an http(s) URL; "{name}" takes a route parameter
+     * @param int $status 301, 302, 303, 307 or 308; 301 by default, for URLs that moved for good
+     * @param array<string, string> $headers Extra response headers
+     * @param array<string, scalar> $parameters Fixed parameters for a route-name target
+     *
+     * @throws RoutingException For an unknown status, an unsafe target, or a header with a line break
+     */
+    public function redirect(string $path, string $to, int $status = 301, array $headers = [], array $parameters = []): Route
+    {
+        if (!in_array($status, [301, 302, 303, 307, 308], true)) {
+            throw new RoutingException("A redirect needs a 301, 302, 303, 307 or 308 status, not {$status}.");
+        }
+        if ($to === '' || str_starts_with($to, '//') || (str_contains($to, ':') && !self::isRedirectUrl($to))) {
+            throw new RoutingException("\"{$to}\" is not a route name, a path or an http(s) URL.");
+        }
+        foreach ($headers as $name => $value) {
+            if (preg_match('/[\r\n]/', $name . $value) === 1) {
+                throw new RoutingException("The redirect header {$name} contains a line break.");
+            }
+        }
+
+        return $this->map(['GET'], $path, RedirectHandler::class)->meta([
+            RedirectHandler::META => ['to' => $to, 'status' => $status],
+            RedirectHandler::META_HEADERS => $headers,
+            RedirectHandler::META_PARAMETERS => $parameters,
+        ]);
+    }
+
+    /**
+     * @internal Whether a redirect target is a path or a URL rather than a route name.
+     */
+    public static function isRedirectUrl(string $to): bool
+    {
+        return (str_starts_with($to, '/') && !str_starts_with($to, '//')) || preg_match('#^https?://[^/\s]#i', $to) === 1;
+    }
+
+    /**
      * One route per locale, each under its locale prefix and carrying the
      * "_locale" default:
      *
