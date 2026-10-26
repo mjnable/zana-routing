@@ -3,6 +3,19 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.2.0 — unreleased
+
+### Added
+
+- Route metadata: `Route::meta()`, `getMeta()`, `#[Route(meta: ...)]` and `LocalizedRoute::meta()`,
+  kept in the route cache (FE-21).
+
+### Changed
+
+- `UrlGenerator` adds the application's base path to generated URLs; its third constructor
+  argument is the base path (FE-11).
+- Requires `mj-zana/http` ^2.2.
+
 ## 2.1.0 — 2026-10-26
 
 ### Added
