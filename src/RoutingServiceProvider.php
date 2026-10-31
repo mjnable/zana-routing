@@ -7,7 +7,11 @@ namespace Zana\Routing;
 use Zana\Container\Contracts\ServiceCollectionInterface;
 use Zana\Container\Contracts\ServiceResolverInterface;
 use Zana\Container\ServiceLifetime;
+use Zana\Core\Inspection\ApplicationCheck;
+use Zana\Core\Inspection\InspectionSection;
 use Zana\Core\ServiceProvider;
+use Zana\Routing\Inspection\RouteHandlersCheck;
+use Zana\Routing\Inspection\RoutesSection;
 use Zana\Configuration\ConfigurationInterface;
 use Zana\Http\BasePath;
 use Zana\Http\HttpKernel;
@@ -31,7 +35,11 @@ final class RoutingServiceProvider extends ServiceProvider
                 return new UrlGenerator($router, $defaults, BasePath::fromConfig($r->get(ConfigurationInterface::class)));
             })->uses(Router::class, UrlDefaults::class, ConfigurationInterface::class)
             ->scoped(RouteDispatcher::class)
-            ->scoped(RedirectHandler::class);
+            ->scoped(RedirectHandler::class)
+            ->singleton(RoutesSection::class)
+            ->tag(InspectionSection::TAG, RoutesSection::class)
+            ->singleton(RouteHandlersCheck::class)
+            ->tag(ApplicationCheck::TAG, RouteHandlersCheck::class);
 
         $handler = static fn (ServiceResolverInterface $scope): RouteDispatcher => $scope->get(RouteDispatcher::class);
 

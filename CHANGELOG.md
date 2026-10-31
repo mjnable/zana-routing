@@ -3,6 +3,17 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.7.0 — 2026-10-31
+
+### Added
+
+- A `routes` section for `inspect`, and a check that every route handler and middleware class exists,
+  has the routed method and is registered in the container, with the registration to add as a hint.
+
+### Changed
+
+- Requires `mj-zana/core` ^2.7 directly.
+
 ## 2.4.0 — 2026-10-26
 
 ### Changed
