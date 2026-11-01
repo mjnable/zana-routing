@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Zana\Routing\Tests;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zana\Container\Contracts\ServiceCollectionInterface;
+use Zana\Container\Contracts\ServiceResolverInterface;
 use Zana\Core\Application;
 use Zana\Core\ApplicationInterface;
 use Zana\Core\Inspection\ApplicationCheck;
@@ -49,7 +54,13 @@ final class RouteInspectionTest extends TestCase
             ['routing.class', 'GET /missing: its handler Modules\\Shop\\Presentation\\Gone does not exist.'],
             ['routing.method', 'GET /typo: its handler ' . RegisteredPage::class . '::shwo() does not exist.'],
             ['routing.middleware', 'GET /guarded: its middleware ' . UnregisteredPage::class . ' is not registered in the container.'],
-        ], $findings);
+        ], array_slice($findings, 0, 4));
+
+        // ADR-025: registered, but its factory needs a service nobody registered; reported once for two routes.
+        $this->assertCount(5, $findings);
+        $this->assertSame('routing.middleware', $findings[4][0]);
+        $this->assertStringStartsWith('GET /needy: its middleware ' . NeedyMiddleware::class . ' cannot be created: ', $findings[4][1]);
+        $this->assertStringContainsString(Clock::class, $findings[4][1]);
         $this->assertStringContainsString('$services->transient(\\' . UnregisteredPage::class . '::class);', (string) $check->findings($app)[0]->hint);
         $this->assertStringEndsWith('RouteInspectionTest.php', str_replace('\\', '/', (string) $check->findings($app)[0]->file));
     }
@@ -59,7 +70,10 @@ final class RouteInspectionTest extends TestCase
         $app = Application::configure(sys_get_temp_dir() . '/zana-routing-inspection')
             ->withEnvironment('testing')
             ->withProviders(HttpServiceProvider::class, RoutingServiceProvider::class)
-            ->withServices(static fn (ServiceCollectionInterface $s) => $s->transient(RegisteredPage::class))
+            ->withServices(static fn (ServiceCollectionInterface $s) => $s
+                ->transient(RegisteredPage::class)
+                ->scoped(NeedyMiddleware::class, static fn (ServiceResolverInterface $r): NeedyMiddleware => new NeedyMiddleware($r->get(Clock::class)))
+                ->uses(Clock::class))
             ->build();
         $router = $app->container()->get(Router::class);
         assert($router instanceof Router);
@@ -69,6 +83,8 @@ final class RouteInspectionTest extends TestCase
         $router->get('/missing', self::mistake('Modules\\Shop\\Presentation\\Gone'));
         $router->get('/typo', self::mistake([RegisteredPage::class, 'shwo']));
         $router->get('/guarded', [RegisteredPage::class, 'show'])->middleware(self::mistake(UnregisteredPage::class));
+        $router->get('/needy', [RegisteredPage::class, 'show'])->middleware(NeedyMiddleware::class);
+        $router->get('/needy-too', [RegisteredPage::class, 'show'])->middleware(NeedyMiddleware::class);
 
         return $app;
     }
@@ -97,6 +113,22 @@ final class RegisteredPage
     public function show(): string
     {
         return 'registered';
+    }
+}
+
+interface Clock
+{
+}
+
+final readonly class NeedyMiddleware implements MiddlewareInterface
+{
+    public function __construct(public Clock $clock)
+    {
+    }
+
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        return $handler->handle($request);
     }
 }
 

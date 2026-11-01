@@ -3,6 +3,13 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.10.0 — 2026-11-01
+
+### Changed
+
+- The route check also creates every registered route middleware in a fresh scope, so one whose
+  factory needs a service nobody registered is reported (`routing.middleware`, ADR-025).
+
 ## 2.7.0 — 2026-10-31
 
 ### Added

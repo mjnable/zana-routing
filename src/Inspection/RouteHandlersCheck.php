@@ -14,7 +14,9 @@ use Zana\Routing\Router;
 /**
  * Every route's handler and middleware can be resolved (FE-46): the class
  * exists, the method exists, and the container has a registration for it.
- * Otherwise the route fails only when someone opens the page.
+ * Each route middleware is also created once in a fresh scope (ADR-025), as
+ * a request would, which finds a factory needing a service nobody
+ * registered. Otherwise the route fails only when someone opens the page.
  */
 final readonly class RouteHandlersCheck implements ApplicationCheck
 {
@@ -26,6 +28,7 @@ final readonly class RouteHandlersCheck implements ApplicationCheck
     {
         $container = $application->container();
         $findings = [];
+        $created = [];
         foreach ($this->router->routes() as $route) {
             $where = implode('|', $route->methods) . ' ' . $route->path;
             if (!$route->handler instanceof \Closure) {
@@ -40,6 +43,21 @@ final readonly class RouteHandlersCheck implements ApplicationCheck
                     $finding = self::problem($container->has($middleware), $middleware, null, "{$where}: its middleware", false);
                     if ($finding !== null) {
                         $findings[] = $finding;
+                    } elseif (!isset($created[$middleware])) {
+                        $created[$middleware] = true;
+                        $scope = $container->createScope();
+                        try {
+                            $scope->get($middleware);
+                        } catch (\Throwable $e) {
+                            $findings[] = new Finding(
+                                'routing.middleware',
+                                Severity::Error,
+                                "{$where}: its middleware {$middleware} cannot be created: " . strtok($e->getMessage(), "\n"),
+                                hint: 'Register what it needs, e.g. the service the message names.',
+                            );
+                        } finally {
+                            $scope->dispose();
+                        }
                     }
                 }
             }
