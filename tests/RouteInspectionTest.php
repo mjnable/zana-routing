@@ -37,7 +37,7 @@ final class RouteInspectionTest extends TestCase
         $routes = $section->inspect($app);
 
         $this->assertSame('routes', $section->name());
-        $this->assertSame(['methods' => 'GET', 'path' => '/registered', 'name' => 'registered', 'handler' => RegisteredPage::class . '::show', 'middleware' => [], 'meta' => ['sitemap' => true]], $routes[0]);
+        $this->assertSame(['methods' => 'GET', 'path' => '/registered', 'name' => 'registered', 'handler' => RegisteredPage::class . '::show', 'middleware' => [], 'meta' => ['sitemap' => true], 'public' => null], $routes[0]);
         $this->assertSame('closure', $routes[1]['handler']);
     }
 

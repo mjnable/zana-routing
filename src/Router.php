@@ -8,6 +8,7 @@ use Closure;
 use Psr\Http\Server\MiddlewareInterface;
 use Zana\Http\Exception\MethodNotAllowedHttpException;
 use Zana\Http\Exception\NotFoundHttpException;
+use Zana\Routing\Attribute\PublicRoute;
 use Zana\Routing\Attribute\Route as RouteAttribute;
 
 /**
@@ -26,7 +27,7 @@ final class Router
     /** @var array<string, array<string, Route>> localised name => locale => route */
     private array $localized = [];
 
-    /** @var list<array{string, list<MiddlewareInterface|class-string<MiddlewareInterface>>}> prefix, middleware */
+    /** @var list<array{string, list<MiddlewareInterface|class-string<MiddlewareInterface>>, ?string}> prefix, middleware, public reason */
     private array $groups = [];
 
     /**
@@ -93,9 +94,11 @@ final class Router
     {
         $prefix = '';
         $middleware = [];
-        foreach ($this->groups as [$groupPrefix, $groupMiddleware]) {
+        $public = null;
+        foreach ($this->groups as [$groupPrefix, $groupMiddleware, $groupPublic]) {
             $prefix .= $groupPrefix;
             array_push($middleware, ...$groupMiddleware);
+            $public = $groupPublic ?? $public;   // the innermost group that says
         }
 
         $route = new Route(
@@ -105,6 +108,9 @@ final class Router
             $this->registerName(...),
         );
         $route->middleware(...$middleware);
+        if ($public !== null) {
+            $route->meta([PublicRoute::META => $public]);
+        }
         $this->routes[] = $route;
 
         return $route;
@@ -196,12 +202,22 @@ final class Router
     /**
      * Prefix paths and prepend middleware for every route defined in the callback.
      *
+     * With $public (2.21, FE-68), every route of the group is declared public
+     * for that reason, as #[PublicRoute] does on one handler:
+     *
+     *     $router->group('', $routes, public: 'The public website');
+     *
      * @param Closure(Router): mixed $routes
      * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middleware
+     *
+     * @throws RoutingException When $public is given but empty
      */
-    public function group(string $prefix, Closure $routes, array $middleware = []): void
+    public function group(string $prefix, Closure $routes, array $middleware = [], ?string $public = null): void
     {
-        $this->groups[] = [rtrim('/' . trim($prefix, '/'), '/'), $middleware];
+        if ($public !== null && trim($public) === '') {
+            throw new RoutingException('A public group needs a reason: say why anyone may reach its routes.');
+        }
+        $this->groups[] = [rtrim('/' . trim($prefix, '/'), '/'), $middleware, $public];
         try {
             $routes($this);
         } finally {

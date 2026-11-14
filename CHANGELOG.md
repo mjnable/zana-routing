@@ -3,6 +3,15 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.21.0 — Unreleased
+
+### Added
+
+- `#[PublicRoute(reason: '…')]` on a handler's method, its class or a closure, and `$router->group(…, public:
+  'reason')` for every route of a group: anyone may reach the route, for the reason given (FE-68, ADR-033). The
+  reason is required. `PublicRoute::reasonFor($route)` reads it, a redirect counts as public, and `inspect routes`
+  shows it. The security rules of `check` (mj-zana/security) report a route that declares no access.
+
 ## 2.10.0 — 2026-11-01
 
 ### Changed

@@ -6,12 +6,14 @@ namespace Zana\Routing\Inspection;
 
 use Zana\Core\ApplicationInterface;
 use Zana\Core\Inspection\InspectionSection;
+use Zana\Routing\Attribute\PublicRoute;
 use Zana\Routing\Route;
 use Zana\Routing\Router;
 
 /**
  * The "routes" section of the inspect command (ADR-023): methods, path,
- * name, handler, middleware and metadata of every route, in matching order.
+ * name, handler, middleware and metadata of every route, in matching order,
+ * and the reason a public route gives (2.21).
  */
 final readonly class RoutesSection implements InspectionSection
 {
@@ -33,6 +35,7 @@ final readonly class RoutesSection implements InspectionSection
             'handler' => self::handler($route->handler),
             'middleware' => array_map(static fn (mixed $middleware): string => is_string($middleware) ? $middleware : get_debug_type($middleware), $route->getMiddleware()),
             'meta' => $route->getMeta(),
+            'public' => PublicRoute::reasonFor($route),   // 2.21: why anyone may reach it, or null
         ], $this->router->routes());
     }
 
